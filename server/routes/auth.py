@@ -6,6 +6,7 @@ from database import get_db
 from sqlalchemy.orm import Session
 import uuid
 import bcrypt
+from pydantic_schemas.user_login import UserLogin
 
 
 router = APIRouter()
@@ -28,3 +29,22 @@ def signup_user(user: UserCreate, db: Session=Depends(get_db)):
     db.refresh(user_db)
 
     return user_db
+#login_user
+@router.post('/login')
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    # check if a user with same email already exist
+    user_db = db.query(User).filter(User.email == user.email).first()
+
+    if not user_db:
+        raise HTTPException(400, 'User with this email does not exist!')
+    
+    # password matching or not
+    is_match = bcrypt.checkpw(user.password.encode(), user_db.password)
+    
+    if not is_match:
+        raise HTTPException(400, 'Incorrect password!')    
+    return user_db
+    #token = jwt.encode({'id': user_db.id}, 'password_key')
+    
+    #return {'token': token, 'user': user_db}
+
